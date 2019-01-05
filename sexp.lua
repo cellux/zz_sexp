@@ -38,6 +38,7 @@ local regex = {
    int = re.compile("^-?[0-9]+"),
    float_suffix = re.compile("^(\\.[0-9]+)?(e-?[0-9]+)?"),
    symbol = re.compile("^[^\\s)]+"),
+   comment = re.compile("^;.*?\\R"),
 }
 
 M.Reader = function(input)
@@ -126,6 +127,8 @@ M.Reader = function(input)
          return read_string()
       elseif match('(') then
          return read_list()
+      elseif pmatch(regex["comment"]) then
+         return self:read()
       elseif pmatch(regex["symbol"]) then
          return Symbol(m[0])
       end

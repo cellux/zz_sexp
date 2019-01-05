@@ -75,7 +75,7 @@ end)
 testing('lists', function()
    test_read([[
 (123 abc
-  (+ 5 3)
+  (+ 5 3) ; comment
   "hello" 
 )]],
       {"list", {
