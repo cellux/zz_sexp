@@ -1,4 +1,5 @@
 return {
    package = "github.com/cellux/zz_sexp",
-   exports = { "sexp" }
+   exports = { "sexp" },
+   apps = { "read" },
 }

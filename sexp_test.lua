@@ -2,41 +2,43 @@ local testing = require('testing')
 local sexp = require('sexp')
 local assert = require('assert')
 
-local function test_read(input, expected_obj)
-   local function assert_eq(actual, expected, level)
-      local exp_kind, exp_value, exp_offset = unpack(expected)
-      -- kind
-      assert.type(exp_kind, "string")
-      local act_kind = actual[1]
-      assert.type(act_kind, "string")
-      assert.equals(act_kind, exp_kind, "kind", level+1)
-      -- value
-      local act_value = actual[2]
-      if act_kind == "list" then
-         assert.type(act_value, "table")
-         assert.type(exp_value, "table")
-         if #act_value ~= #exp_value then
-            pf("expected: %s", require('inspect')(exp_value))
-            pf("actual: %s", require('inspect')(act_value))
-         end
-         assert.equals(#act_value, #exp_value)
-         for i=1,#act_value do
-            assert_eq(act_value[i], exp_value[i], level+1)
-         end
-      else
-         assert.equals(act_value, exp_value, "value", level+1)
+local function assert_eq(actual, expected, level)
+   level = level or 2
+   local exp_kind, exp_value, exp_offset = unpack(expected)
+   -- kind
+   assert.type(exp_kind, "string")
+   local act_kind = actual[1]
+   assert.type(act_kind, "string")
+   assert.equals(act_kind, exp_kind, "kind", level+1)
+   -- value
+   local act_value = actual[2]
+   if act_kind == "list" then
+      assert.type(act_value, "table")
+      assert.type(exp_value, "table")
+      if #act_value ~= #exp_value then
+         pf("expected: %s", require('inspect')(exp_value))
+         pf("actual: %s", require('inspect')(act_value))
       end
-      -- offset
-      if exp_offset then
-         local act_offset = actual[3]
-         assert.type(act_offset, "number")
-         assert.type(exp_offset, "number")
-         assert.equals(act_offset, exp_offset, "offset", level+1)
+      assert.equals(#act_value, #exp_value)
+      for i=1,#act_value do
+         assert_eq(act_value[i], exp_value[i], level+1)
       end
+   else
+      assert.equals(act_value, exp_value, "value", level+1)
    end
+   -- offset
+   if exp_offset then
+      local act_offset = actual[3]
+      assert.type(act_offset, "number")
+      assert.type(exp_offset, "number")
+      assert.equals(act_offset, exp_offset, "offset", level+1)
+   end
+end
+
+local function test_read(input, expected_obj)
    local reader = sexp.Reader(input)
    local obj = reader:read()
-   assert_eq(obj, expected_obj, 2)
+   assert_eq(obj, expected_obj)
 end
 
 testing('numbers', function()
@@ -99,4 +101,35 @@ testing('lists', function()
               {"int", 5 },
               {"int", 3 }}},
           {"string", "hello"}}})
+end)
+
+testing('custom lists', function()
+  local reader = sexp.Reader [[
+(let (x [0 1 2 3 4]
+      y #[a b c]
+      z (phi beta)))
+]]
+  reader:register_list("set", "#[", "]")
+  reader:register_list("vector", "[", "]")
+  local obj = reader:read()
+  assert_eq(obj,
+            {"list", {
+                {"symbol", "let"},
+                {"list", {
+                    {"symbol", "x"},
+                    {"vector", {
+                        {"int", 0},
+                        {"int", 1},
+                        {"int", 2},
+                        {"int", 3},
+                        {"int", 4}}},
+                    {"symbol", "y"},
+                    {"set", {
+                        {"symbol", "a"},
+                        {"symbol", "b"},
+                        {"symbol", "c"}}},
+                    {"symbol", "z"},
+                    {"list", {
+                        {"symbol", "phi"},
+                        {"symbol", "beta"}}}}}}})
 end)
