@@ -55,6 +55,14 @@ M.Reader = function(input)
       input:match(regex["ws"])
    end
 
+   -- macro kinds
+
+   local macro_kinds = {}
+
+   function self:register_macro(prefix, parse)
+      table.insert(macro_kinds, { prefix, parse })
+   end
+
    -- list kinds
 
    local list_kinds = {}
@@ -130,12 +138,12 @@ M.Reader = function(input)
    --- main
 
    -- predeclaration due to mutual recursion
-   local read_list, read_list_item
+   local read_list, read_form
 
    read_list = function(close_delim)
       local items = {}
       while true do
-         local item = read_list_item(close_delim)
+         local item = read_form(close_delim)
          if not item then
             break
          else
@@ -145,7 +153,7 @@ M.Reader = function(input)
       return items
    end
 
-   read_list_item = function(close_delim)
+   read_form = function(close_delim)
 
       local list_kind, list_close_delim
 
@@ -197,9 +205,25 @@ M.Reader = function(input)
          return word_match
       end
 
+      local macro_parse
+
+      local function match_macro()
+         macro_parse = nil
+         for _,v in ipairs(macro_kinds) do
+            -- { prefix, parse }
+            if self:match(v[1]) then
+               macro_parse = v[2]
+               break
+            end
+         end
+         return macro_parse
+      end
+
       skip_ws()
       if close_delim and self:match(close_delim) then
          return nil
+      elseif match_macro() then
+         return macro_parse(self)
       elseif match_list() then
          return { list_kind, read_list(list_close_delim) }
       elseif match_string() then
@@ -214,7 +238,7 @@ M.Reader = function(input)
          end
          util.throw("read error", "missing delimiter at end of string")
       elseif match_comment() then
-         return read_list_item(close_delim)
+         return read_form(close_delim)
       elseif self:pmatch(regex["word"]) then
          local word = self.last_match[0]
          if close_delim then
@@ -235,7 +259,7 @@ M.Reader = function(input)
    end
 
    function self:read()
-      return read_list_item()
+      return read_form()
    end
    return self
 end

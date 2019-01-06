@@ -105,7 +105,7 @@ end)
 
 testing('custom lists', function()
   local reader = sexp.Reader [[
-(let (x [0 1 2 3 4]
+(let (x [0 1 (5 8) 2 #[9 7] 3 4]
       y #[a b c]
       z (phi beta)))
 ]]
@@ -120,7 +120,13 @@ testing('custom lists', function()
                     {"vector", {
                         {"int", 0},
                         {"int", 1},
+                        {"list", {
+                            {"int", 5},
+                            {"int", 8}}},
                         {"int", 2},
+                        {"set", {
+                            {"int", 9},
+                            {"int", 7}}},
                         {"int", 3},
                         {"int", 4}}},
                     {"symbol", "y"},
@@ -132,4 +138,24 @@ testing('custom lists', function()
                     {"list", {
                         {"symbol", "phi"},
                         {"symbol", "beta"}}}}}}})
+end)
+
+testing("reader macros", function()
+  local reader = sexp.Reader("(let form '(+ 2 3))")
+  reader:register_macro("'", function(r)
+     return {"list", {
+                {"symbol", "quote"},
+                r:read() }}
+  end)
+  local obj = reader:read()
+  assert_eq(obj,
+            {"list", {
+                {"symbol", "let"},
+                {"symbol", "form"},
+                {"list", {
+                    {"symbol", "quote"},
+                    {"list", {
+                        {"symbol", "+"},
+                        {"int", 2},
+                        {"int", 3}}}}}}})
 end)
