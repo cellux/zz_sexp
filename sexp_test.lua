@@ -103,14 +103,38 @@ testing('lists', function()
           {"string", "hello"}}})
 end)
 
+testing("reader macros", function()
+  local reader = sexp.Reader("(let form '(+ 2 3))")
+  reader:register_macro("'", function(r)
+     return {"list", {
+                {"symbol", "quote"},
+                r:read_form() }}
+  end)
+  local obj = reader:read()
+  assert_eq(obj,
+            {"list", {
+                {"symbol", "let"},
+                {"symbol", "form"},
+                {"list", {
+                    {"symbol", "quote"},
+                    {"list", {
+                        {"symbol", "+"},
+                        {"int", 2},
+                        {"int", 3}}}}}}})
+end)
+
 testing('custom lists', function()
   local reader = sexp.Reader [[
 (let (x [0 1 (5 8) 2 #[9 7] 3 4]
       y #[a b c]
       z (phi beta)))
 ]]
-  reader:register_list("set", "#[", "]")
-  reader:register_list("vector", "[", "]")
+  reader:register_macro('#[', function(r)
+     return { "set", r:read_forms(']') }
+  end)
+  reader:register_macro('[', function(r)
+     return { "vector", r:read_forms(']') }
+  end)
   local obj = reader:read()
   assert_eq(obj,
             {"list", {
@@ -138,24 +162,4 @@ testing('custom lists', function()
                     {"list", {
                         {"symbol", "phi"},
                         {"symbol", "beta"}}}}}}})
-end)
-
-testing("reader macros", function()
-  local reader = sexp.Reader("(let form '(+ 2 3))")
-  reader:register_macro("'", function(r)
-     return {"list", {
-                {"symbol", "quote"},
-                r:read() }}
-  end)
-  local obj = reader:read()
-  assert_eq(obj,
-            {"list", {
-                {"symbol", "let"},
-                {"symbol", "form"},
-                {"list", {
-                    {"symbol", "quote"},
-                    {"list", {
-                        {"symbol", "+"},
-                        {"int", 2},
-                        {"int", 3}}}}}}})
 end)
