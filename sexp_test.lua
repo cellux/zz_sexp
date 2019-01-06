@@ -163,3 +163,19 @@ testing('custom lists', function()
                         {"symbol", "phi"},
                         {"symbol", "beta"}}}}}}})
 end)
+
+testing('word parsers', function()
+   local reader = sexp.Reader("(let form (+ 2 3))")
+   reader:register_word("^f\\w+", function(m)
+     return { "special", m[0] }
+   end)
+   local obj = reader:read()
+   assert_eq(obj,
+             {"list", {
+                 {"symbol", "let"},
+                 {"special", "form"},
+                 {"list", {
+                     {"symbol", "+"},
+                     {"int", 2},
+                     {"int", 3}}}}})
+end)

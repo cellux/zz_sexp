@@ -12,7 +12,7 @@ local regex = {
    comment = re.compile("^;.*?\\R"),
 }
 
--- readers of default macros
+-- built-in macro readers
 
 local function read_list(r)
    return { "list", r:read_forms(')') }
@@ -62,7 +62,7 @@ local function read_string(r)
    util.throw("read error", "missing delimiter at end of string")
 end
 
--- parsers of default words
+-- built-in word parsers
 
 local function parse_number(m)
    if m[1] then
@@ -121,22 +121,22 @@ M.Reader = function(input)
    local macros = {}
 
    function self:register_macro(prefix, read)
-      table.insert(macros, { prefix, read })
+      table.insert(macros, 1, { prefix, read })
    end
 
-   self:register_macro('(', read_list)
    self:register_macro('"', read_string)
+   self:register_macro('(', read_list)
 
    -- words
 
    local words = {}
 
    function self:register_word(regex, parse)
-      table.insert(words, { regex, parse })
+      table.insert(words, 1, { re.compile(regex), parse })
    end
 
-   self:register_word(regex["number"], parse_number)
    self:register_word(regex["word"], parse_symbol)
+   self:register_word(regex["number"], parse_number)
 
    --- main
 
